@@ -45,7 +45,7 @@ stages:
   jobs:
   - job: "Run_Batch_Score_Pipeline"
     displayName: "Run Batch Scoring Pipeline"
-    dependsOn: ["Build_Batch_Scoring_Pipeline"]
+    # dependsOn: ["Build_Batch_Scoring_Pipeline"]
     timeoutInMinutes: 240
     pool: server
     variables:
