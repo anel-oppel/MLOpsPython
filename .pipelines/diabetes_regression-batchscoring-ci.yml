@@ -69,21 +69,3 @@ stages:
       env:
         SCORING_DATASTORE_ACCESS_KEY: $(SCORING_DATASTORE_ACCESS_KEY)
 
-  - job: "Run_Batch_Score_Pipeline"
-    displayName: "Run Batch Scoring Pipeline"
-    dependsOn: ["Build_Batch_Scoring_Pipeline"]
-    timeoutInMinutes: 240
-    pool: server
-    variables:
-      pipeline_id: $[ dependencies.Build_Batch_Scoring_Pipeline.outputs['publish_batchscore.pipeline_id']]
-      model_name: $[ dependencies.Build_Batch_Scoring_Pipeline.outputs['get_model.MODEL_NAME']]
-      model_version: $[ dependencies.Build_Batch_Scoring_Pipeline.outputs['get_model.MODEL_VERSION']]
-    steps:
-    - task: ms-air-aiagility.vss-services-azureml.azureml-restApi-task.MLPublishedPipelineRestAPITask@0
-      displayName: 'Invoke Batch Scoring pipeline'
-      inputs:
-        azureSubscription: '$(WORKSPACE_SVC_CONNECTION)'
-        PipelineId: '$(pipeline_id)'
-        ExperimentName: '$(EXPERIMENT_NAME)'
-        PipelineParameters: '"ParameterAssignments": {"model_name": "$(model_name)", "model_version": "$(model_version)"}'
-      
