@@ -37,15 +37,41 @@ variables:
 - group: devopsforai-aml-vg
 
 pool:
-  name: default
+  name: 'Default'
 
 stages:
 - stage: 'Batch_Scoring_Pipeline_CI'
   displayName: 'Batch Scoring Pipeline CI'
   jobs:
+  - job: "Build_Batch_Scoring_Pipeline"
+    displayName: "Build Batch Scoring Pipeline"
+    container: mlops
+    timeoutInMinutes: 0
+    steps:
+    - template: code-quality-template.yml
+    - template: diabetes_regression-get-model-id-artifact-template.yml
+      parameters:
+        projectId: '$(resources.pipeline.model-train-ci.projectID)'
+        pipelineId: '$(resources.pipeline.model-train-ci.pipelineID)'
+        artifactBuildId: ${{ parameters.artifactBuildId }}
+    - task: AzureCLI@1
+      displayName: "Publish Batch Scoring Pipeline"
+      name: publish_batchscore
+      inputs:
+        azureSubscription: '$(WORKSPACE_SVC_CONNECTION)'        
+        scriptLocation: inlineScript
+        workingDirectory: $(Build.SourcesDirectory)
+        inlineScript: |
+          set -e # fail on error
+          export SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+          # Invoke the Python building and publishing a training pipeline
+          python -m ml_service.pipelines.diabetes_regression_build_parallel_batchscore_pipeline
+      env:
+        SCORING_DATASTORE_ACCESS_KEY: $(SCORING_DATASTORE_ACCESS_KEY)
+
   - job: "Run_Batch_Score_Pipeline"
     displayName: "Run Batch Scoring Pipeline"
-    # dependsOn: ["Build_Batch_Scoring_Pipeline"]
+    dependsOn: ["Build_Batch_Scoring_Pipeline"]
     timeoutInMinutes: 240
     pool: server
     variables:
@@ -60,4 +86,3 @@ stages:
         PipelineId: '$(pipeline_id)'
         ExperimentName: '$(EXPERIMENT_NAME)'
         PipelineParameters: '"ParameterAssignments": {"model_name": "$(model_name)", "model_version": "$(model_version)"}'
-
